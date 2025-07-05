@@ -75,27 +75,44 @@ const tokens = [
 ];
 
 function populateTokens() {
-  const tokenInSelect = document.getElementById("tokenInSelect");
-  const tokenOutSelect = document.getElementById("tokenOutSelect");
-  tokenInSelect.innerHTML = "";
-  tokenOutSelect.innerHTML = "";
+  const inSel = document.getElementById("tokenInSelect");
+  const outSel = document.getElementById("tokenOutSelect");
+  inSel.innerHTML = "";
+  outSel.innerHTML = "";
   tokens.forEach(t => {
-    const opt = document.createElement("option");
-    opt.value = JSON.stringify(t);
-    opt.text = t.symbol;
-    tokenInSelect.appendChild(opt.cloneNode(true));
-    tokenOutSelect.appendChild(opt);
+    const opt1 = document.createElement("option");
+    opt1.value = JSON.stringify(t);
+    opt1.text = t.symbol;
+    const opt2 = opt1.cloneNode(true);
+    inSel.appendChild(opt1);
+    outSel.appendChild(opt2);
   });
+  setTimeout(syncDisabledTokens, 200);
   updateBalances();
+}
+
+function syncDisabledTokens() {
+  const inSel = document.getElementById("tokenInSelect");
+  const outSel = document.getElementById("tokenOutSelect");
+  const inToken = JSON.parse(inSel.value);
+  const outToken = JSON.parse(outSel.value);
+  Array.from(outSel.options).forEach(opt => {
+    const token = JSON.parse(opt.value);
+    opt.disabled = token.address === inToken.address;
+  });
+  Array.from(inSel.options).forEach(opt => {
+    const token = JSON.parse(opt.value);
+    opt.disabled = token.address === outToken.address;
+  });
 }
 
 function reverseTokens() {
   const inSel = document.getElementById("tokenInSelect");
   const outSel = document.getElementById("tokenOutSelect");
-  const inVal = inSel.value;
-  const outVal = outSel.value;
-  inSel.value = outVal;
-  outSel.value = inVal;
+  const tmp = inSel.value;
+  inSel.value = outSel.value;
+  outSel.value = tmp;
+  syncDisabledTokens();
   updateBalances();
   estimateOut();
 }
@@ -114,47 +131,65 @@ async function connect() {
 
 async function updateBalances() {
   if (!userAddress) return;
-  const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
-  const tokenOut = JSON.parse(document.getElementById("tokenOutSelect").value);
-  if (tokenIn.address === "AVAX") {
-    const bal = await provider.getBalance(userAddress);
-    document.getElementById("balanceIn").innerText = `Balance: ${ethers.formatEther(bal)}`;
-  } else {
-    const contract = new ethers.Contract(tokenIn.address, ERC20_ABI, provider);
-    const bal = await contract.balanceOf(userAddress);
-    const dec = await contract.decimals();
-    document.getElementById("balanceIn").innerText = `Balance: ${ethers.formatUnits(bal, dec)}`;
-  }
+  const inToken = JSON.parse(document.getElementById("tokenInSelect").value);
+  const outToken = JSON.parse(document.getElementById("tokenOutSelect").value);
 
-  if (tokenOut.address === "AVAX") {
-    const bal = await provider.getBalance(userAddress);
-    document.getElementById("balanceOut").innerText = `Balance: ${ethers.formatEther(bal)}`;
-  } else {
-    const contract = new ethers.Contract(tokenOut.address, ERC20_ABI, provider);
-    const bal = await contract.balanceOf(userAddress);
-    const dec = await contract.decimals();
-    document.getElementById("balanceOut").innerText = `Balance: ${ethers.formatUnits(bal, dec)}`;
+  const getBalanceText = async (token) => {
+    if (token.address === "AVAX") {
+      const bal = await provider.getBalance(userAddress);
+      return ethers.formatEther(bal);
+    } else {
+      const contract = new ethers.Contract(token.address, ERC20_ABI, provider);
+      const bal = await contract.balanceOf(userAddress);
+      const dec = await contract.decimals();
+      return ethers.formatUnits(bal, dec);
+    }
+  };
+
+  document.getElementById("balanceIn").innerText = "Balance: " + await getBalanceText(inToken);
+  document.getElementById("balanceOut").innerText = "Balance: " + await getBalanceText(outToken);
+}
+
+async function estimateOut() {
+  const amount = document.getElementById("tokenInAmount").value;
+  const inToken = JSON.parse(document.getElementById("tokenInSelect").value);
+  const outToken = JSON.parse(document.getElementById("tokenOutSelect").value);
+  if (!amount || inToken.address === outToken.address) return;
+
+  try {
+    const dec = inToken.address === "AVAX" ? 18 : await new ethers.Contract(inToken.address, ERC20_ABI, provider).decimals();
+    const amountIn = ethers.parseUnits(amount, dec);
+    const path = [
+      inToken.address === "AVAX" ? WAVAX : inToken.address,
+      outToken.address === "AVAX" ? WAVAX : outToken.address
+    ];
+    const out = await router.getAmountsOut(amountIn, path);
+    const outDec = outToken.address === "AVAX" ? 18 : await new ethers.Contract(outToken.address, ERC20_ABI, provider).decimals();
+    document.getElementById("estimate").innerText = `Estimated: ${ethers.formatUnits(out[1], outDec)}`;
+  } catch {
+    document.getElementById("estimate").innerText = "Estimated: -";
   }
 }
 
 async function swap() {
   const amount = document.getElementById("tokenInAmount").value;
   const slippage = parseFloat(document.getElementById("slippage").value);
-  const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
-  const tokenOut = JSON.parse(document.getElementById("tokenOutSelect").value);
-  if (!amount || tokenIn.address === tokenOut.address) return alert("Invalid input");
+  const inToken = JSON.parse(document.getElementById("tokenInSelect").value);
+  const outToken = JSON.parse(document.getElementById("tokenOutSelect").value);
+  if (!amount || inToken.address === outToken.address) return alert("Invalid input");
+
   const to = userAddress;
   const deadline = Math.floor(Date.now() / 1000) + 600;
 
-  if (tokenIn.address === "AVAX" && tokenOut.address === WAVAX) {
-    const wavaxContract = new ethers.Contract(WAVAX, ["function deposit() payable"], signer);
-    const tx = await wavaxContract.deposit({ value: ethers.parseEther(amount) });
+  if (inToken.address === "AVAX" && outToken.address === WAVAX) {
+    const wavax = new ethers.Contract(WAVAX, ["function deposit() payable"], signer);
+    const tx = await wavax.deposit({ value: ethers.parseEther(amount) });
     alert("Wrapped AVAX to WAVAX: " + tx.hash);
     return;
   }
 
-  if (tokenIn.address === "AVAX") {
-    const path = [WAVAX, tokenOut.address === "AVAX" ? WAVAX : tokenOut.address];
+  if (inToken.address === "AVAX") {
+    const path = [WAVAX, outToken.address === "AVAX" ? WAVAX : outToken.address];
     const tx = await router.swapExactAVAXForTokensSupportingFeeOnTransferTokens(0, path, to, deadline, {
       value: ethers.parseEther(amount)
     });
@@ -162,20 +197,20 @@ async function swap() {
     return;
   }
 
-  const tokenInContract = new ethers.Contract(tokenIn.address, ERC20_ABI, signer);
-  const decimals = await tokenInContract.decimals();
+  const inContract = new ethers.Contract(inToken.address, ERC20_ABI, signer);
+  const decimals = await inContract.decimals();
   const amountIn = ethers.parseUnits(amount, decimals);
-  const allowance = await tokenInContract.allowance(userAddress, routerAddress);
+  const allowance = await inContract.allowance(userAddress, routerAddress);
   if (allowance < amountIn) {
-    const tx = await tokenInContract.approve(routerAddress, ethers.MaxUint256);
+    const tx = await inContract.approve(routerAddress, ethers.MaxUint256);
     await tx.wait();
   }
 
-  const path = [tokenIn.address, tokenOut.address === "AVAX" ? WAVAX : tokenOut.address];
+  const path = [inToken.address, outToken.address === "AVAX" ? WAVAX : outToken.address];
   const amounts = await router.getAmountsOut(amountIn, path);
   const minOut = amounts[1] - (amounts[1] * BigInt(Math.floor(slippage * 100)) / 10000n);
 
-  if (tokenOut.address === "AVAX") {
+  if (outToken.address === "AVAX") {
     const tx = await router.swapExactTokensForAVAXSupportingFeeOnTransferTokens(amountIn, minOut, path, to, deadline);
     alert("Swap sent: " + tx.hash);
   } else {
@@ -184,43 +219,14 @@ async function swap() {
   }
 }
 
-async function estimateOut() {
-  const amount = document.getElementById("tokenInAmount").value;
-  const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
-  const tokenOut = JSON.parse(document.getElementById("tokenOutSelect").value);
-  if (!amount || tokenIn.address === tokenOut.address) return;
-
-  const amountIn = tokenIn.address === "AVAX"
-    ? ethers.parseEther(amount)
-    : ethers.parseUnits(amount, await new ethers.Contract(tokenIn.address, ERC20_ABI, provider).decimals());
-
-  const path = [
-    tokenIn.address === "AVAX" ? WAVAX : tokenIn.address,
-    tokenOut.address === "AVAX" ? WAVAX : tokenOut.address
-  ];
-
-  try {
-    const out = await router.getAmountsOut(amountIn, path);
-    const outDecimals = tokenOut.address === "AVAX" ? 18 : await new ethers.Contract(tokenOut.address, ERC20_ABI, provider).decimals();
-    document.getElementById("estimate").innerText = `Estimated: ${ethers.formatUnits(out[1], outDecimals)}`;
-  } catch {
-    document.getElementById("estimate").innerText = "Estimated: -";
-  }
-}
-
 document.getElementById("tokenInAmount").addEventListener("input", estimateOut);
 document.getElementById("tokenInSelect").addEventListener("change", () => {
-  const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
-  const tokenOutSelect = document.getElementById("tokenOutSelect");
-  const currentOut = JSON.parse(tokenOutSelect.value);
-  if (tokenIn.address === currentOut.address) {
-    const alt = tokens.find(t => t.address !== tokenIn.address);
-    if (alt) tokenOutSelect.value = JSON.stringify(alt);
-  }
+  syncDisabledTokens();
   updateBalances();
   estimateOut();
 });
 document.getElementById("tokenOutSelect").addEventListener("change", () => {
+  syncDisabledTokens();
   updateBalances();
   estimateOut();
 });
@@ -228,3 +234,4 @@ window.addEventListener("load", populateTokens);
 </script>
 </body>
 </html>
+
