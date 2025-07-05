@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AVAX DEX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+  <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
+  <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
+  <style>
+    body {
+      background: #141414; color: white;
+      font-family: sans-serif; text-align: center;
+      padding: 40px;
+    }
+    select, input, button {
+      margin: 10px; padding: 14px;
+      font-size: 16px; border-radius: 10px;
+      width: 90%; max-width: 340px;
+    }
+    button {
+      background: #e84142; color: white;
+      border: none; cursor: pointer;
+    }
+    #dex {
+      background: #222;
+      padding: 25px; border-radius: 16px;
+      display: inline-block;
+    }
+    #price {
+      margin-top: 10px; font-size: 14px; color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <h2>AVAX DEX</h2>
+  <div id="dex">
+    <button onclick="connect()">🔗 Connect Wallet</button><br>
+    <select id="fromToken" onchange="getPrice()"></select><br>
+    <select id="toToken" onchange="getPrice()"></select><br>
+    <input id="amount" placeholder="Amount to Swap" oninput="getPrice()"><br>
+    <input id="slippage" placeholder="Slippage (%)" value="1"><br>
+    <div id="price">💱 Price: --</div>
+    <button onclick="swap()">🔄 Swap</button>
+  </div>
+
+  <script>
+    const routerAddress = "0xDf5BE01DA734085952a3AC272Fd9a4BFFf37CBB1";
+    const WAVAX = "0xEBad2487329f9f6aC858b2Bc78F9aF04283856b2";
+
+    const tokens = [
+      { symbol: "AVAX", address: "AVAX", cg: "avalanche-2" },
+      { symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", cg: "usd-coin" },
+      { symbol: "USDT", address: "0xc7198437980c041c805A1EDcbA50c1Ce5db95118", cg: "tether" },
+      { symbol: "WETH.e", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB", cg: "weth" },
+      { symbol: "BTC.b", address: "0x152b9d0fdc40c096757f570a51e494bd4b943e50", cg: "bitcoin" }
+    ];
+
+    const routerAbi = [{
+      name: "swapExactTokensForTokens",
+      type: "function",
+      stateMutability: "nonpayable",
+      inputs: [
+        { name: "amountIn", type: "uint256" },
+        { name: "amountOutMin", type: "uint256" },
+        { name: "path", type: "address[]" },
+        { name: "to", type: "address" },
+        { name: "deadline", type: "uint256" }
+      ],
+      outputs: []
+    }];
+
+    let web3Modal, provider, web3, account;
+
+    window.onload = () => {
+      web3Modal = new window.Web3Modal.default({
+        cacheProvider: false,
+        providerOptions: {
+          walletconnect: {
+            package: window.WalletConnectProvider.default,
+            options: {
+              rpc: { 43114: "https://api.avax.network/ext/bc/C/rpc" },
+              chainId: 43114
+            }
+          }
+        }
+      });
+
+      tokens.forEach(t => {
+        const opt1 = new Option(t.symbol, t.address);
+        const opt2 = new Option(t.symbol, t.address);
+        document.getElementById("fromToken").appendChild(opt1);
+        document.getElementById("toToken").appendChild(opt2);
+      });
+    };
+
+    async function connect() {
+      provider = await web3Modal.connect();
+      web3 = new Web3(provider);
+      const accounts = await web3.eth.getAccounts();
+      account = accounts[0];
+      alert("Connected: " + account);
+    }
+
+    async function getPrice() {
+      const amt = parseFloat(document.getElementById("amount").value || 0);
+      const from = document.getElementById("fromToken").value;
+      const to = document.getElementById("toToken").value;
+      if (amt <= 0 || from === to) return document.getElementById("price").innerText = "💱 Price: --";
+
+      const fromToken = tokens.find(t => t.address === from || (from === "AVAX" && t.address === "AVAX"));
+      const toToken = tokens.find(t => t.address === to || (to === "AVAX" && t.address === "AVAX"));
+
+      try {
+        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${fromToken.cg}&vs_currencies=${toToken.cg}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const price = data[fromToken.cg][toToken.cg];
+        const total = price * amt;
+        document.getElementById("price").innerText = `💱 Est: ${total.toFixed(4)} ${toToken.symbol}`;
+      } catch {
+        document.getElementById("price").innerText = "💱 Price: error";
+      }
+    }
+
+    async function swap() {
+      const from = document.getElementById("fromToken").value;
+      const to = document.getElementById("toToken").value;
+      const amount = document.getElementById("amount").value;
+      const deadline = Math.floor(Date.now() / 1000) + 60 * 20;
+
+      if (!web3 || !account) return alert("Connect your wallet first.");
+      if (!amount || !from || !to) return alert("Please fill all fields.");
+      if (from === to) return alert("Choose different tokens.");
+
+      const router = new web3.eth.Contract(routerAbi, routerAddress);
+      const amountIn = web3.utils.toWei(amount, 'ether');
+      const minOut = "0";
+      const path = [from === "AVAX" ? WAVAX : from, to === "AVAX" ? WAVAX : to];
+
+      const token = new web3.eth.Contract([
+        {
+          name: "approve",
+          type: "function",
+          inputs: [
+            { name: "_spender", type: "address" },
+            { name: "_value", type: "uint256" }
+          ],
+          outputs: [{ name: "", type: "bool" }]
+        }
+      ], path[0]);
+
+      await token.methods.approve(routerAddress, amountIn).send({ from: account });
+      await router.methods.swapExactTokensForTokens(amountIn, minOut, path, account, deadline).send({ from: account });
+
+      alert("✅ Swap Complete!");
+    }
+  </script>
+</body>
+</html>
