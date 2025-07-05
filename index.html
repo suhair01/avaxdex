@@ -14,8 +14,9 @@
     .btn { background-color: #00c2ff; color: white; padding: 12px; width: 100%; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 16px; }
     .info { margin-top: 8px; font-size: 14px; color: #ccc; }
     .reverse-btn { background: #444; margin: 8px auto; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; font-size: 20px; }
-    .token-select option { padding-left: 24px; background-position: left center; background-repeat: no-repeat; background-size: 20px; }
     .max-btn { position: absolute; top: 34px; right: 10px; background: #00c2ff; border: none; padding: 4px 10px; border-radius: 8px; color: white; cursor: pointer; font-size: 12px; }
+    .token-option { display: flex; align-items: center; }
+    .token-option img { width: 18px; height: 18px; margin-right: 6px; vertical-align: middle; }
   </style>
 </head>
 <body>
@@ -24,7 +25,7 @@
 
   <div class="token-box">
     <label>From Token:</label>
-    <select id="tokenInSelect" class="token-select"></select>
+    <select id="tokenInSelect"></select>
     <div class="info" id="balanceIn">Balance: -</div>
     <input id="tokenInAmount" placeholder="Enter amount" />
     <button class="max-btn" onclick="setMax()">MAX</button>
@@ -34,7 +35,7 @@
 
   <div class="token-box">
     <label>To Token:</label>
-    <select id="tokenOutSelect" class="token-select"></select>
+    <select id="tokenOutSelect"></select>
     <div class="info" id="balanceOut">Balance: -</div>
     <div class="info" id="estimate">Estimated: -</div>
   </div>
@@ -51,8 +52,136 @@
 </div>
 
 <script>
-// JS will be inserted here — same as before but extended with token logos + max balance logic
-// Let me know if you want the JS portion pasted again with full features
+const routerAddress = "0xF56D524D651B90E4B84dc2FffD83079698b9066E";
+const WAVAX = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
+const ABI = [
+  "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory)",
+  "function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)",
+  "function swapExactAVAXForTokensSupportingFeeOnTransferTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) payable",
+  "function swapExactTokensForAVAXSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)"
+];
+const ERC20_ABI = [
+  "function balanceOf(address) view returns (uint256)",
+  "function approve(address spender, uint256 amount) returns (bool)",
+  "function allowance(address owner, address spender) view returns (uint256)",
+  "function decimals() view returns (uint8)"
+];
+
+let provider, signer, router, userAddress;
+
+const tokens = [
+  { symbol: "AVAX", address: "AVAX", logo: "https://cryptologos.cc/logos/avalanche-avax-logo.png" },
+  { symbol: "ARENA", address: "0xb8d7710f7d8349a506b75dd184f05777c82dad0c", logo: "https://via.placeholder.com/20x20.png?text=A" },
+  { symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", logo: "https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png" },
+  { symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB", logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png" },
+  { symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd", logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanche/assets/0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd/logo.png" },
+  { symbol: "WAVAX", address: WAVAX, logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanche/assets/0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7/logo.png" }
+];
+
+function populateTokens() {
+  const inSel = document.getElementById("tokenInSelect");
+  const outSel = document.getElementById("tokenOutSelect");
+  inSel.innerHTML = "";
+  outSel.innerHTML = "";
+  tokens.forEach(t => {
+    const optIn = document.createElement("option");
+    optIn.value = JSON.stringify(t);
+    optIn.innerHTML = `${t.symbol}`;
+    const optOut = optIn.cloneNode(true);
+    inSel.appendChild(optIn);
+    outSel.appendChild(optOut);
+  });
+  setTimeout(syncDisabledTokens, 200);
+  updateBalances();
+}
+
+function syncDisabledTokens() {
+  const inSel = document.getElementById("tokenInSelect");
+  const outSel = document.getElementById("tokenOutSelect");
+  const inToken = JSON.parse(inSel.value);
+  const outToken = JSON.parse(outSel.value);
+  Array.from(outSel.options).forEach(opt => opt.disabled = JSON.parse(opt.value).address === inToken.address);
+  Array.from(inSel.options).forEach(opt => opt.disabled = JSON.parse(opt.value).address === outToken.address);
+}
+
+function reverseTokens() {
+  const inSel = document.getElementById("tokenInSelect");
+  const outSel = document.getElementById("tokenOutSelect");
+  const tmp = inSel.value;
+  inSel.value = outSel.value;
+  outSel.value = tmp;
+  syncDisabledTokens();
+  updateBalances();
+  estimateOut();
+}
+
+async function connect() {
+  if (!window.ethereum) return alert("Install MetaMask");
+  await window.ethereum.request({ method: "eth_requestAccounts" });
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+  userAddress = await signer.getAddress();
+  router = new ethers.Contract(routerAddress, ABI, signer);
+  document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+  document.getElementById("swapBtn").disabled = false;
+  updateBalances();
+}
+
+async function updateBalances() {
+  if (!userAddress) return;
+  const inToken = JSON.parse(document.getElementById("tokenInSelect").value);
+  const outToken = JSON.parse(document.getElementById("tokenOutSelect").value);
+
+  const getBalanceText = async (token) => {
+    if (token.address === "AVAX") {
+      const bal = await provider.getBalance(userAddress);
+      return ethers.formatEther(bal);
+    } else {
+      const contract = new ethers.Contract(token.address, ERC20_ABI, provider);
+      const bal = await contract.balanceOf(userAddress);
+      const dec = await contract.decimals();
+      return ethers.formatUnits(bal, dec);
+    }
+  };
+
+  document.getElementById("balanceIn").innerText = "Balance: " + await getBalanceText(inToken);
+  document.getElementById("balanceOut").innerText = "Balance: " + await getBalanceText(outToken);
+}
+
+async function setMax() {
+  const inToken = JSON.parse(document.getElementById("tokenInSelect").value);
+  if (!userAddress || !provider) return;
+  let max;
+  if (inToken.address === "AVAX") {
+    const bal = await provider.getBalance(userAddress);
+    max = ethers.formatEther(bal);
+  } else {
+    const contract = new ethers.Contract(inToken.address, ERC20_ABI, provider);
+    const bal = await contract.balanceOf(userAddress);
+    const dec = await contract.decimals();
+    max = ethers.formatUnits(bal, dec);
+  }
+  document.getElementById("tokenInAmount").value = max;
+  estimateOut();
+}
+
+function estimateOut() {
+  document.getElementById("estimate").innerText = "Estimating...";
+  // Optional: Add router.getAmountsOut logic here if needed
+}
+
+function swap() {
+  alert("Swap function coming soon...");
+}
+
+document.getElementById("tokenInAmount").addEventListener("input", estimateOut);
+document.getElementById("tokenInSelect").addEventListener("change", () => {
+  syncDisabledTokens(); updateBalances(); estimateOut();
+});
+document.getElementById("tokenOutSelect").addEventListener("change", () => {
+  syncDisabledTokens(); updateBalances(); estimateOut();
+});
+window.addEventListener("load", populateTokens);
 </script>
 </body>
 </html>
