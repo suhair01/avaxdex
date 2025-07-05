@@ -42,6 +42,8 @@
 
 <script>
 const routerAddress = "0xF56D524D651B90E4B84dc2FffD83079698b9066E";
+const WAVAX = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
+
 const erc20Abi = [
   "function balanceOf(address) view returns (uint)",
   "function approve(address spender, uint256 value) returns (bool)",
@@ -50,6 +52,7 @@ const erc20Abi = [
   "function name() view returns (string)",
   "function allowance(address owner, address spender) view returns (uint256)"
 ];
+
 const routerAbi = [
   "function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)",
   "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory)"
@@ -65,25 +68,13 @@ let tokens = [
     decimals: 18
   },
   {
-    address: "0x1234567890123456789012345678901234567890",
-    symbol: "MOON",
-    name: "Moon Token",
+    address: "0x6F43fF77A9C0Cf552b5b653268fBFe26A052429b",
+    symbol: "LAMBO",
+    name: "Lambo Token",
     decimals: 18
   },
   {
-    address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
-    symbol: "RUG",
-    name: "Rug Token",
-    decimals: 18
-  },
-  {
-    address: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
-    symbol: "BATTLE",
-    name: "Battle Coin",
-    decimals: 18
-  },
-  {
-    address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
+    address: WAVAX,
     symbol: "WAVAX",
     name: "Wrapped AVAX",
     decimals: 18
@@ -129,10 +120,15 @@ async function estimateOutput() {
     const token = new ethers.Contract(tokenIn, erc20Abi, provider);
     const decimals = await token.decimals();
     const amountIn = ethers.parseUnits(amount, decimals);
-    const amounts = await router.getAmountsOut(amountIn, [tokenIn, tokenOut]);
+
+    let path = (tokenIn === WAVAX || tokenOut === WAVAX)
+      ? [tokenIn, tokenOut]
+      : [tokenIn, WAVAX, tokenOut];
+
+    const amounts = await router.getAmountsOut(amountIn, path);
     const tokenOutContract = new ethers.Contract(tokenOut, erc20Abi, provider);
     const decimalsOut = await tokenOutContract.decimals();
-    const estimated = ethers.formatUnits(amounts[1], decimalsOut);
+    const estimated = ethers.formatUnits(amounts[amounts.length - 1], decimalsOut);
     document.getElementById("estimatedOut").innerText = `Estimated: ~${estimated}`;
   } catch (err) {
     document.getElementById("estimatedOut").innerText = "Estimated: -";
@@ -161,19 +157,23 @@ async function swap() {
       await approveTx.wait();
     }
 
-    const amounts = await router.getAmountsOut(amountIn, [tokenIn, tokenOut]);
-    const minOut = amounts[1] - (amounts[1] * BigInt(Math.floor(slippage * 100)) / 10000n);
+    let path = (tokenIn === WAVAX || tokenOut === WAVAX)
+      ? [tokenIn, tokenOut]
+      : [tokenIn, WAVAX, tokenOut];
+
+    const amounts = await router.getAmountsOut(amountIn, path);
+    const minOut = amounts[amounts.length - 1] - (amounts[amounts.length - 1] * BigInt(Math.floor(slippage * 100)) / 10000n);
 
     const tx = await router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
       amountIn,
       minOut,
-      [tokenIn, tokenOut],
+      path,
       userAddress,
       Math.floor(Date.now() / 1000) + 600
     );
     alert("Swap sent: " + tx.hash);
   } catch (err) {
-    alert("Swap failed: " + err.message);
+    alert("Swap failed: " + (err.reason || err.message));
   }
 }
 
