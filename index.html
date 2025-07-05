@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Arena DEX – Rabby Swap</title>
+  <title>Arena DEX – AVAX Swap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -59,18 +59,12 @@
       color: #ccc;
       margin-top: 5px;
     }
-
-    img.logo {
-      height: 16px;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>🌀 Arena DEX (Rabby Wallet)</h2>
+  <h2>🌀 Arena DEX</h2>
 
   <div class="token-box">
     <label>Swap Direction:</label>
@@ -80,7 +74,7 @@
     </select>
   </div>
 
-  <div class="token-box" id="fromBox">
+  <div class="token-box">
     <label id="fromLabel">From: AVAX</label>
     <input id="fromAmount" placeholder="Enter amount" />
     <p class="balance" id="fromBalance">Balance: –</p>
@@ -93,10 +87,7 @@
     </select>
   </div>
 
-  <button class="btn" onclick="connect()">
-    <img src="https://rabby.io/assets/logo.svg" class="logo" />
-    Connect with Rabby Wallet
-  </button>
+  <button class="btn" onclick="connect()">🔌 Connect Wallet</button>
   <p id="walletStatus">Not connected</p>
 
   <button class="btn" onclick="swap()">🔥 Swap</button>
@@ -110,6 +101,7 @@
     "function swapExactAVAXForTokensSupportingFeeOnTransferTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) payable",
     "function swapExactTokensForAVAXSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)"
   ];
+
   const erc20Abi = [
     "function balanceOf(address owner) view returns (uint256)",
     "function approve(address spender, uint value) returns (bool)",
@@ -138,39 +130,44 @@
   }
 
   async function connect() {
-    if (!window.ethereum || !window.ethereum.isRabby) {
-      alert("Please install Rabby Wallet from https://rabby.io");
+    if (!window.ethereum) {
+      alert("Please install a Web3 wallet like Rabby or MetaMask.");
       return;
     }
 
-    await window.ethereum.request({ method: "eth_requestAccounts" });
-    provider = new ethers.BrowserProvider(window.ethereum);
-    signer = await provider.getSigner();
-    router = new ethers.Contract(routerAddress, routerAbi, signer);
-    userAddress = await signer.getAddress();
-    document.getElementById("walletStatus").innerText = "Connected via Rabby: " + userAddress;
-    loadBalance();
+    try {
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      provider = new ethers.BrowserProvider(window.ethereum);
+      signer = await provider.getSigner();
+      router = new ethers.Contract(routerAddress, routerAbi, signer);
+      userAddress = accounts[0];
+      document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+      loadBalance();
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+      alert("Wallet connection failed. Please approve in your wallet.");
+    }
   }
 
   async function loadBalance() {
     const dir = document.getElementById("direction").value;
     const tokenAddress = document.getElementById("tokenOutSelect").value;
-    const fromBalance = document.getElementById("fromBalance");
     const fromLabel = document.getElementById("fromLabel");
+    const fromBalance = document.getElementById("fromBalance");
 
     if (!signer || !userAddress) return;
 
     if (dir === "avax-to-token") {
       fromLabel.innerText = "From: AVAX";
       const bal = await provider.getBalance(userAddress);
-      fromBalance.innerText = "Balance: " + ethers.formatEther(bal).slice(0, 6) + " AVAX";
+      fromBalance.innerText = "Balance: " + ethers.formatEther(bal).slice(0, 8) + " AVAX";
     } else {
       fromLabel.innerText = "From: Token";
       const token = new ethers.Contract(tokenAddress, erc20Abi, provider);
       const rawBal = await token.balanceOf(userAddress);
       const decimals = await token.decimals();
       const bal = ethers.formatUnits(rawBal, decimals);
-      fromBalance.innerText = "Balance: " + bal.slice(0, 10);
+      fromBalance.innerText = "Balance: " + bal.slice(0, 12);
     }
   }
 
