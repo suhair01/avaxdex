@@ -93,16 +93,23 @@ const erc20Abi = [
 ];
 
 let provider, signer, userAddress, router;
-const tokens = [
-  { name: "ARENA", symbol: "ARENA", address: "0xb8d7710f7d8349a506b75dd184f05777c82dad0c" },
-  { name: "USDC", symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E" },
-  { name: "JOE", symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd" },
-  { name: "WETH", symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB" }
-];
+let tokens = [];
+
+async function fetchTokensFromArena() {
+  try {
+    const res = await fetch("https://api.arenatrade.xyz/tokens");
+    tokens = await res.json();
+    populateTokenDropdowns();
+  } catch (err) {
+    alert("Failed to load Arena tokens.");
+  }
+}
 
 function populateTokenDropdowns() {
   const fromSel = document.getElementById("tokenInSelect");
   const toSel = document.getElementById("tokenOutSelect");
+  fromSel.innerHTML = "";
+  toSel.innerHTML = "";
   tokens.forEach(t => {
     const opt1 = document.createElement("option");
     opt1.value = t.address;
@@ -185,7 +192,7 @@ async function swap() {
   }
 }
 
-populateTokenDropdowns();
+fetchTokensFromArena();
 </script>
 </body>
 </html>
