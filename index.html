@@ -60,8 +60,7 @@ const ERC20_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function approve(address spender, uint256 amount) returns (bool)",
   "function allowance(address owner, address spender) view returns (uint256)",
-  "function decimals() view returns (uint8)",
-  "function symbol() view returns (string)"
+  "function decimals() view returns (uint8)"
 ];
 
 let provider, signer, router, userAddress;
@@ -81,15 +80,11 @@ function populateTokens() {
   tokenInSelect.innerHTML = "";
   tokenOutSelect.innerHTML = "";
   tokens.forEach(t => {
-    const optIn = document.createElement("option");
-    optIn.value = JSON.stringify(t);
-    optIn.text = `${t.symbol}`;
-    tokenInSelect.appendChild(optIn);
-
-    const optOut = document.createElement("option");
-    optOut.value = JSON.stringify(t);
-    optOut.text = `${t.symbol}`;
-    tokenOutSelect.appendChild(optOut);
+    const opt = document.createElement("option");
+    opt.value = JSON.stringify(t);
+    opt.text = t.symbol;
+    tokenInSelect.appendChild(opt.cloneNode(true));
+    tokenOutSelect.appendChild(opt);
   });
   updateBalances();
 }
@@ -125,18 +120,19 @@ async function updateBalances() {
     const bal = await provider.getBalance(userAddress);
     document.getElementById("balanceIn").innerText = `Balance: ${ethers.formatEther(bal)}`;
   } else {
-    const tokenInContract = new ethers.Contract(tokenIn.address, ERC20_ABI, provider);
-    const bal = await tokenInContract.balanceOf(userAddress);
-    const dec = await tokenInContract.decimals();
+    const contract = new ethers.Contract(tokenIn.address, ERC20_ABI, provider);
+    const bal = await contract.balanceOf(userAddress);
+    const dec = await contract.decimals();
     document.getElementById("balanceIn").innerText = `Balance: ${ethers.formatUnits(bal, dec)}`;
   }
+
   if (tokenOut.address === "AVAX") {
     const bal = await provider.getBalance(userAddress);
     document.getElementById("balanceOut").innerText = `Balance: ${ethers.formatEther(bal)}`;
   } else {
-    const tokenOutContract = new ethers.Contract(tokenOut.address, ERC20_ABI, provider);
-    const bal = await tokenOutContract.balanceOf(userAddress);
-    const dec = await tokenOutContract.decimals();
+    const contract = new ethers.Contract(tokenOut.address, ERC20_ABI, provider);
+    const bal = await contract.balanceOf(userAddress);
+    const dec = await contract.decimals();
     document.getElementById("balanceOut").innerText = `Balance: ${ethers.formatUnits(bal, dec)}`;
   }
 }
@@ -150,7 +146,6 @@ async function swap() {
   const to = userAddress;
   const deadline = Math.floor(Date.now() / 1000) + 600;
 
-  // Wrap AVAX → WAVAX
   if (tokenIn.address === "AVAX" && tokenOut.address === WAVAX) {
     const wavaxContract = new ethers.Contract(WAVAX, ["function deposit() payable"], signer);
     const tx = await wavaxContract.deposit({ value: ethers.parseEther(amount) });
@@ -158,7 +153,6 @@ async function swap() {
     return;
   }
 
-  // Standard AVAX to token swap
   if (tokenIn.address === "AVAX") {
     const path = [WAVAX, tokenOut.address === "AVAX" ? WAVAX : tokenOut.address];
     const tx = await router.swapExactAVAXForTokensSupportingFeeOnTransferTokens(0, path, to, deadline, {
@@ -199,6 +193,7 @@ async function estimateOut() {
   const amountIn = tokenIn.address === "AVAX"
     ? ethers.parseEther(amount)
     : ethers.parseUnits(amount, await new ethers.Contract(tokenIn.address, ERC20_ABI, provider).decimals());
+
   const path = [
     tokenIn.address === "AVAX" ? WAVAX : tokenIn.address,
     tokenOut.address === "AVAX" ? WAVAX : tokenOut.address
@@ -214,8 +209,21 @@ async function estimateOut() {
 }
 
 document.getElementById("tokenInAmount").addEventListener("input", estimateOut);
-document.getElementById("tokenInSelect").addEventListener("change", () => { updateBalances(); estimateOut(); });
-document.getElementById("tokenOutSelect").addEventListener("change", () => { updateBalances(); estimateOut(); });
+document.getElementById("tokenInSelect").addEventListener("change", () => {
+  const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
+  const tokenOutSelect = document.getElementById("tokenOutSelect");
+  const currentOut = JSON.parse(tokenOutSelect.value);
+  if (tokenIn.address === currentOut.address) {
+    const alt = tokens.find(t => t.address !== tokenIn.address);
+    if (alt) tokenOutSelect.value = JSON.stringify(alt);
+  }
+  updateBalances();
+  estimateOut();
+});
+document.getElementById("tokenOutSelect").addEventListener("change", () => {
+  updateBalances();
+  estimateOut();
+});
 window.addEventListener("load", populateTokens);
 </script>
 </body>
