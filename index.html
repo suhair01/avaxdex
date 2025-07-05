@@ -78,12 +78,6 @@
 
 <script>
 const routerAddress = "0xF56D524D651B90E4B84dc2FffD83079698b9066E";
-
-const routerAbi = [
-  "function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)",
-  "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory)"
-];
-
 const erc20Abi = [
   "function balanceOf(address) view returns (uint)",
   "function approve(address spender, uint256 value) returns (bool)",
@@ -92,27 +86,31 @@ const erc20Abi = [
   "function name() view returns (string)",
   "function allowance(address owner, address spender) view returns (uint256)"
 ];
+const routerAbi = [
+  "function swapExactTokensForTokensSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)",
+  "function getAmountsOut(uint amountIn, address[] calldata path) view returns (uint[] memory)"
+];
 
 let provider, signer, userAddress, router;
 let tokens = [];
 
-async function fetchTokensFromArenaFactory() {
-  const factoryAbi = [
-    "function allTokens(uint256) view returns (address)",
-    "function allTokensLength() view returns (uint256)"
-  ];
+async function fetchTokensFromLaunchLogs() {
+  const launchAddress = "0x8315f1eb449Dd4B779495C3A0b05e5d194446c6e";
+  const launchAbi = [ "event TokenLaunched(address token)" ];
+  const iface = new ethers.Interface(launchAbi);
+  const launch = new ethers.Contract(launchAddress, launchAbi, provider);
 
-  const factory = new ethers.Contract(
-    "0xF16784dcAf838a3e16bEF7711a62D12413c39BD1",
-    factoryAbi,
-    provider
-  );
+  const logs = await provider.getLogs({
+    address: launchAddress,
+    fromBlock: 0,
+    toBlock: "latest",
+    topics: [ethers.id("TokenLaunched(address)")]
+  });
 
-  const count = await factory.allTokensLength();
   tokens = [];
 
-  for (let i = 0; i < count; i++) {
-    const tokenAddress = await factory.allTokens(i);
+  for (const log of logs) {
+    const tokenAddress = iface.decodeEventLog("TokenLaunched", log.data, log.topics).token;
     try {
       const token = new ethers.Contract(tokenAddress, erc20Abi, provider);
       const symbol = await token.symbol();
@@ -120,7 +118,7 @@ async function fetchTokensFromArenaFactory() {
       const decimals = await token.decimals();
       tokens.push({ address: tokenAddress, symbol, name, decimals });
     } catch (err) {
-      console.warn("Failed to fetch token at index", i);
+      console.warn("Failed to read token:", tokenAddress);
     }
   }
 
@@ -214,7 +212,7 @@ async function swap() {
   }
 }
 
-fetchTokensFromArenaFactory();
+fetchTokensFromLaunchLogs();
 </script>
 </body>
 </html>
