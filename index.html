@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Arena DEX Clone - AVAX</title>
+  <title>Arena DEX – AVAX Swap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -53,51 +53,72 @@
     .btn:disabled {
       background-color: #666;
     }
+
+    .balance {
+      font-size: 12px;
+      color: #ccc;
+      margin-top: 5px;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>🌀 Arena DEX Clone</h2>
+  <h2>🌀 Arena AVAX DEX</h2>
 
   <div class="token-box">
-    <label>From: AVAX</label>
-    <input id="avaxAmount" placeholder="Enter AVAX amount" />
+    <label>Swap Direction:</label>
+    <select id="direction" onchange="loadBalance()">
+      <option value="avax-to-token">AVAX → Token</option>
+      <option value="token-to-avax">Token → AVAX</option>
+    </select>
+  </div>
+
+  <div class="token-box" id="fromBox">
+    <label id="fromLabel">From: AVAX</label>
+    <input id="fromAmount" placeholder="Enter amount" />
+    <p class="balance" id="fromBalance">Balance: –</p>
   </div>
 
   <div class="token-box">
     <label>To Token:</label>
-    <select id="tokenOutSelect">
+    <select id="tokenOutSelect" onchange="loadBalance()">
       <option value="">Loading...</option>
     </select>
   </div>
 
-  <button class="btn" onclick="connect()">Connect Wallet</button>
+  <button class="btn" onclick="connect()">🔌 Connect Wallet</button>
   <p id="walletStatus">Not connected</p>
 
-  <button class="btn" onclick="swap()">Swap</button>
+  <button class="btn" onclick="swap()">🔥 Swap</button>
 </div>
 
 <script>
-  const routerAddress = "0xF56D524D651B90E4B84dc2FffD83079698b9066E"; // your router
-  const wavax = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"; // official WAVAX
-  const abi = [
-    "function swapExactAVAXForTokensSupportingFeeOnTransferTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) payable"
+  const routerAddress = "0xF56D524D651B90E4B84dc2FffD83079698b9066E";
+  const wavax = "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7";
+
+  const routerAbi = [
+    "function swapExactAVAXForTokensSupportingFeeOnTransferTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) payable",
+    "function swapExactTokensForAVAXSupportingFeeOnTransferTokens(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)"
+  ];
+  const erc20Abi = [
+    "function balanceOf(address owner) view returns (uint256)",
+    "function approve(address spender, uint value) returns (bool)",
+    "function decimals() view returns (uint8)"
   ];
 
-  let provider, signer, router;
+  let provider, signer, router, userAddress;
 
-  async function loadTokens() {
-    const tokens = [
-      { name: "ARENA", symbol: "ARENA", address: "0xb8d7710f7d8349a506b75dd184f05777c82dad0c" },
-      { name: "USDC", symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E" },
-      { name: "WETH", symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB" },
-      { name: "JOE", symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd" }
-    ];
+  const tokens = [
+    { name: "ARENA", symbol: "ARENA", address: "0xb8d7710f7d8349a506b75dd184f05777c82dad0c" },
+    { name: "USDC", symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E" },
+    { name: "WETH", symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB" },
+    { name: "JOE", symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd" }
+  ];
 
+  function loadTokens() {
     const select = document.getElementById("tokenOutSelect");
     select.innerHTML = "";
-
     tokens.forEach(t => {
       const option = document.createElement("option");
       option.value = t.address;
@@ -111,32 +132,77 @@
     await window.ethereum.request({ method: "eth_requestAccounts" });
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
-    router = new ethers.Contract(routerAddress, abi, signer);
-    const addr = await signer.getAddress();
-    document.getElementById("walletStatus").innerText = "Connected: " + addr;
+    router = new ethers.Contract(routerAddress, routerAbi, signer);
+    userAddress = await signer.getAddress();
+    document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+    loadBalance();
+  }
+
+  async function loadBalance() {
+    const dir = document.getElementById("direction").value;
+    const tokenAddress = document.getElementById("tokenOutSelect").value;
+    const fromBalance = document.getElementById("fromBalance");
+    const fromLabel = document.getElementById("fromLabel");
+
+    if (!signer || !userAddress) return;
+
+    if (dir === "avax-to-token") {
+      fromLabel.innerText = "From: AVAX";
+      const bal = await provider.getBalance(userAddress);
+      fromBalance.innerText = "Balance: " + ethers.formatEther(bal) + " AVAX";
+    } else {
+      fromLabel.innerText = "From: Token";
+      const token = new ethers.Contract(tokenAddress, erc20Abi, provider);
+      const rawBal = await token.balanceOf(userAddress);
+      const decimals = await token.decimals();
+      const bal = ethers.formatUnits(rawBal, decimals);
+      fromBalance.innerText = "Balance: " + bal;
+    }
   }
 
   async function swap() {
-    const avaxAmount = document.getElementById("avaxAmount").value;
+    const dir = document.getElementById("direction").value;
     const tokenOut = document.getElementById("tokenOutSelect").value;
-    if (!tokenOut || !avaxAmount) return alert("Please fill all fields");
-
-    const path = [wavax, tokenOut];
-    const to = await signer.getAddress();
+    const amountIn = document.getElementById("fromAmount").value;
+    const to = userAddress;
     const deadline = Math.floor(Date.now() / 1000) + 600;
 
+    if (!amountIn || !tokenOut) return alert("Enter amount and select token.");
+
     try {
-      const tx = await router.swapExactAVAXForTokensSupportingFeeOnTransferTokens(
-        0, path, to, deadline,
-        { value: ethers.parseEther(avaxAmount) }
-      );
-      alert("Swap sent: " + tx.hash);
+      if (dir === "avax-to-token") {
+        const path = [wavax, tokenOut];
+        const tx = await router.swapExactAVAXForTokensSupportingFeeOnTransferTokens(
+          0, path, to, deadline,
+          { value: ethers.parseEther(amountIn) }
+        );
+        alert("Swap sent: " + tx.hash);
+      } else {
+        const path = [tokenOut, wavax];
+        const token = new ethers.Contract(tokenOut, erc20Abi, signer);
+        const decimals = await token.decimals();
+        const amount = ethers.parseUnits(amountIn, decimals);
+
+        const allowance = await token.allowance(userAddress, routerAddress);
+        if (allowance < amount) {
+          const approveTx = await token.approve(routerAddress, ethers.MaxUint256);
+          await approveTx.wait();
+        }
+
+        const tx = await router.swapExactTokensForAVAXSupportingFeeOnTransferTokens(
+          amount, 0, path, to, deadline
+        );
+        alert("Swap sent: " + tx.hash);
+      }
     } catch (err) {
       alert("Swap failed: " + err.message);
     }
   }
 
-  window.addEventListener("load", loadTokens);
+  window.addEventListener("load", () => {
+    loadTokens();
+    document.getElementById("tokenOutSelect").addEventListener("change", loadBalance);
+  });
 </script>
 
 </body>
