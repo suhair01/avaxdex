@@ -150,6 +150,15 @@ async function swap() {
   const to = userAddress;
   const deadline = Math.floor(Date.now() / 1000) + 600;
 
+  // Wrap AVAX → WAVAX
+  if (tokenIn.address === "AVAX" && tokenOut.address === WAVAX) {
+    const wavaxContract = new ethers.Contract(WAVAX, ["function deposit() payable"], signer);
+    const tx = await wavaxContract.deposit({ value: ethers.parseEther(amount) });
+    alert("Wrapped AVAX to WAVAX: " + tx.hash);
+    return;
+  }
+
+  // Standard AVAX to token swap
   if (tokenIn.address === "AVAX") {
     const path = [WAVAX, tokenOut.address === "AVAX" ? WAVAX : tokenOut.address];
     const tx = await router.swapExactAVAXForTokensSupportingFeeOnTransferTokens(0, path, to, deadline, {
@@ -211,4 +220,3 @@ window.addEventListener("load", populateTokens);
 </script>
 </body>
 </html>
-
