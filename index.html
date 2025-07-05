@@ -130,14 +130,14 @@ async function updateBalances() {
     const dec = await tokenInContract.decimals();
     document.getElementById("balanceIn").innerText = `Balance: ${ethers.formatUnits(bal, dec)}`;
   }
-  if (tokenOut.address !== "AVAX") {
+  if (tokenOut.address === "AVAX") {
+    const bal = await provider.getBalance(userAddress);
+    document.getElementById("balanceOut").innerText = `Balance: ${ethers.formatEther(bal)}`;
+  } else {
     const tokenOutContract = new ethers.Contract(tokenOut.address, ERC20_ABI, provider);
     const bal = await tokenOutContract.balanceOf(userAddress);
     const dec = await tokenOutContract.decimals();
     document.getElementById("balanceOut").innerText = `Balance: ${ethers.formatUnits(bal, dec)}`;
-  } else {
-    const bal = await provider.getBalance(userAddress);
-    document.getElementById("balanceOut").innerText = `Balance: ${ethers.formatEther(bal)}`;
   }
 }
 
@@ -147,12 +147,11 @@ async function swap() {
   const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
   const tokenOut = JSON.parse(document.getElementById("tokenOutSelect").value);
   if (!amount || tokenIn.address === tokenOut.address) return alert("Invalid input");
-
   const to = userAddress;
   const deadline = Math.floor(Date.now() / 1000) + 600;
 
   if (tokenIn.address === "AVAX") {
-    const path = [WAVAX, tokenOut.address];
+    const path = [WAVAX, tokenOut.address === "AVAX" ? WAVAX : tokenOut.address];
     const tx = await router.swapExactAVAXForTokensSupportingFeeOnTransferTokens(0, path, to, deadline, {
       value: ethers.parseEther(amount)
     });
@@ -198,9 +197,7 @@ async function estimateOut() {
 
   try {
     const out = await router.getAmountsOut(amountIn, path);
-    const outDecimals = tokenOut.address === "AVAX"
-      ? 18
-      : await new ethers.Contract(tokenOut.address, ERC20_ABI, provider).decimals();
+    const outDecimals = tokenOut.address === "AVAX" ? 18 : await new ethers.Contract(tokenOut.address, ERC20_ABI, provider).decimals();
     document.getElementById("estimate").innerText = `Estimated: ${ethers.formatUnits(out[1], outDecimals)}`;
   } catch {
     document.getElementById("estimate").innerText = "Estimated: -";
@@ -214,3 +211,4 @@ window.addEventListener("load", populateTokens);
 </script>
 </body>
 </html>
+
