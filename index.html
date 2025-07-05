@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Arena DEX (Manual Tokens)</title>
+  <title>Arena DEX</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -56,15 +56,34 @@ const routerAbi = [
 ];
 
 let provider, signer, userAddress, router;
+
 let tokens = [
   {
-    address: "0x8315f1eb449Dd4B779495C3A0b05e5d194446c6e", // Arena Token
+    address: "0x8315f1eb449Dd4B779495C3A0b05e5d194446c6e",
     symbol: "ARENA",
     name: "Arena Token",
     decimals: 18
   },
   {
-    address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7", // WAVAX
+    address: "0x1234567890123456789012345678901234567890",
+    symbol: "MOON",
+    name: "Moon Token",
+    decimals: 18
+  },
+  {
+    address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    symbol: "RUG",
+    name: "Rug Token",
+    decimals: 18
+  },
+  {
+    address: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+    symbol: "BATTLE",
+    name: "Battle Coin",
+    decimals: 18
+  },
+  {
+    address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
     symbol: "WAVAX",
     name: "Wrapped AVAX",
     decimals: 18
