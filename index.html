@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Arena DEX – AVAX Swap</title>
+  <title>Arena DEX – Rabby Swap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <style>
@@ -59,12 +59,18 @@
       color: #ccc;
       margin-top: 5px;
     }
+
+    img.logo {
+      height: 16px;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>🌀 Arena AVAX DEX</h2>
+  <h2>🌀 Arena DEX (Rabby Wallet)</h2>
 
   <div class="token-box">
     <label>Swap Direction:</label>
@@ -87,7 +93,10 @@
     </select>
   </div>
 
-  <button class="btn" onclick="connect()">🔌 Connect Wallet</button>
+  <button class="btn" onclick="connect()">
+    <img src="https://rabby.io/assets/logo.svg" class="logo" />
+    Connect with Rabby Wallet
+  </button>
   <p id="walletStatus">Not connected</p>
 
   <button class="btn" onclick="swap()">🔥 Swap</button>
@@ -104,7 +113,8 @@
   const erc20Abi = [
     "function balanceOf(address owner) view returns (uint256)",
     "function approve(address spender, uint value) returns (bool)",
-    "function decimals() view returns (uint8)"
+    "function decimals() view returns (uint8)",
+    "function allowance(address owner, address spender) view returns (uint256)"
   ];
 
   let provider, signer, router, userAddress;
@@ -112,8 +122,8 @@
   const tokens = [
     { name: "ARENA", symbol: "ARENA", address: "0xb8d7710f7d8349a506b75dd184f05777c82dad0c" },
     { name: "USDC", symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E" },
-    { name: "WETH", symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB" },
-    { name: "JOE", symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd" }
+    { name: "JOE", symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd" },
+    { name: "WETH", symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB" }
   ];
 
   function loadTokens() {
@@ -128,13 +138,17 @@
   }
 
   async function connect() {
-    if (!window.ethereum) return alert("Install MetaMask");
+    if (!window.ethereum || !window.ethereum.isRabby) {
+      alert("Please install Rabby Wallet from https://rabby.io");
+      return;
+    }
+
     await window.ethereum.request({ method: "eth_requestAccounts" });
     provider = new ethers.BrowserProvider(window.ethereum);
     signer = await provider.getSigner();
     router = new ethers.Contract(routerAddress, routerAbi, signer);
     userAddress = await signer.getAddress();
-    document.getElementById("walletStatus").innerText = "Connected: " + userAddress;
+    document.getElementById("walletStatus").innerText = "Connected via Rabby: " + userAddress;
     loadBalance();
   }
 
@@ -149,14 +163,14 @@
     if (dir === "avax-to-token") {
       fromLabel.innerText = "From: AVAX";
       const bal = await provider.getBalance(userAddress);
-      fromBalance.innerText = "Balance: " + ethers.formatEther(bal) + " AVAX";
+      fromBalance.innerText = "Balance: " + ethers.formatEther(bal).slice(0, 6) + " AVAX";
     } else {
       fromLabel.innerText = "From: Token";
       const token = new ethers.Contract(tokenAddress, erc20Abi, provider);
       const rawBal = await token.balanceOf(userAddress);
       const decimals = await token.decimals();
       const bal = ethers.formatUnits(rawBal, decimals);
-      fromBalance.innerText = "Balance: " + bal;
+      fromBalance.innerText = "Balance: " + bal.slice(0, 10);
     }
   }
 
@@ -207,3 +221,4 @@
 
 </body>
 </html>
+
