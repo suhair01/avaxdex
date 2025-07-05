@@ -13,6 +13,7 @@
     input, select { width: 100%; padding: 10px; margin-top: 6px; background: #333; color: white; border: none; border-radius: 8px; font-size: 16px; }
     .btn { background-color: #00c2ff; color: white; padding: 12px; width: 100%; border: none; border-radius: 12px; font-size: 16px; cursor: pointer; margin-top: 16px; }
     .info { margin-top: 8px; font-size: 14px; color: #ccc; }
+    .reverse-btn { background: #444; margin: 8px auto; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; font-size: 20px; }
   </style>
 </head>
 <body>
@@ -25,6 +26,8 @@
     <div class="info" id="balanceIn">Balance: -</div>
     <input id="tokenInAmount" placeholder="Enter amount" />
   </div>
+
+  <div class="reverse-btn" onclick="reverseTokens()">⇅</div>
 
   <div class="token-box">
     <label>To Token:</label>
@@ -88,6 +91,17 @@ function populateTokens() {
     }
   });
   updateBalances();
+}
+
+function reverseTokens() {
+  const inSel = document.getElementById("tokenInSelect");
+  const outSel = document.getElementById("tokenOutSelect");
+  const inVal = inSel.value;
+  const outVal = outSel.value;
+  inSel.value = outVal;
+  outSel.value = inVal;
+  updateBalances();
+  estimateOut();
 }
 
 async function connect() {
