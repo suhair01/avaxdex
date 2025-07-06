@@ -23,113 +23,114 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      padding: 24px;
+      padding: 16px;
     }
     .swap-container {
       background: var(--card);
-      padding: 24px;
-      border-radius: 20px;
+      padding: 16px;
+      border-radius: 16px;
       width: 100%;
-      max-width: 420px;
+      max-width: 360px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.3);
     }
     .header {
       text-align: center;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
     .header img {
-      height: 40px;
-      margin-bottom: 8px;
+      height: 32px;
+      margin-bottom: 6px;
     }
     .header h2 {
       margin: 0;
-      font-size: 22px;
+      font-size: 18px;
       color: var(--ruby);
     }
     .token-box {
       background: #141414;
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 12px;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
     }
     .token-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .token-select select {
       background: #1f1f1f;
       color: var(--text);
       border: none;
-      padding: 10px;
-      border-radius: 12px;
+      padding: 8px;
+      border-radius: 10px;
       font-weight: 500;
+      font-size: 14px;
     }
     .balance {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--subtle);
     }
     .amount-input {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       background: #1f1f1f;
       border: none;
-      border-radius: 12px;
+      border-radius: 10px;
       color: var(--text);
-      font-size: 18px;
+      font-size: 16px;
       text-align: right;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .percentage-buttons {
       display: flex;
       justify-content: space-between;
-      gap: 6px;
+      gap: 4px;
     }
     .percentage-buttons button {
       flex: 1;
-      padding: 8px;
-      font-size: 14px;
+      padding: 6px;
+      font-size: 12px;
       background: #2a2a2a;
       color: white;
       border: 1px solid var(--ruby);
-      border-radius: 10px;
+      border-radius: 8px;
       cursor: pointer;
     }
     .percentage-buttons button:hover {
       background: var(--ruby);
     }
     .reverse-btn {
-      width: 36px;
-      height: 36px;
-      margin: 12px auto;
+      width: 32px;
+      height: 32px;
+      margin: 10px auto;
       background: #222;
       color: white;
       border-radius: 50%;
       border: none;
-      font-size: 18px;
+      font-size: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
     }
     .slippage-box, .info {
-      font-size: 13px;
+      font-size: 12px;
       color: var(--subtle);
-      margin: 8px 0;
+      margin: 6px 0;
       text-align: center;
     }
     .btn {
       background: var(--ruby);
       color: white;
       width: 100%;
-      padding: 14px;
-      font-size: 16px;
+      padding: 12px;
+      font-size: 14px;
       font-weight: bold;
       border: none;
-      border-radius: 16px;
+      border-radius: 14px;
       cursor: pointer;
-      margin-top: 12px;
+      margin-top: 10px;
       transition: background 0.2s;
     }
     .btn:hover {
@@ -171,7 +172,7 @@
       <input class="amount-input" id="tokenOutAmount" placeholder="0.0" readonly>
     </div>
 
-    <div class="slippage-box">Slippage Tolerance: <input id="slippage" value="1" style="width: 50px; text-align:center;">%</div>
+    <div class="slippage-box">Slippage: <input id="slippage" value="1" style="width: 50px; text-align:center;">%</div>
     <div class="info" id="estimate">Estimated: -</div>
 
     <button class="btn" onclick="connect()">Connect Wallet</button>
