@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Arena DEX Pro</title>
+  <title>RubySwap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <style>
     body {
-      background-color: #ff3b3f;
+      background-color: #9e1c29;
       color: white;
       font-family: 'Segoe UI', sans-serif;
       margin: 0;
@@ -16,7 +16,7 @@
     .container {
       max-width: 440px;
       margin: 40px auto;
-      background: #ffffff10;
+      background: #1a0d0f;
       padding: 24px;
       border-radius: 16px;
       box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -30,9 +30,10 @@
     h2 {
       text-align: center;
       margin-bottom: 24px;
+      color: #ffffff;
     }
     .token-box {
-      background: #ffffff1a;
+      background: #2a1218;
       padding: 16px;
       border-radius: 12px;
       margin-bottom: 16px;
@@ -40,12 +41,13 @@
     }
     label {
       font-size: 14px;
+      color: #ffffff;
     }
     input, select {
       width: 100%;
       padding: 10px;
       margin-top: 6px;
-      background: #ffffff15;
+      background: #3d1a20;
       color: white;
       border: none;
       border-radius: 8px;
@@ -53,7 +55,7 @@
     }
     .btn {
       background-color: white;
-      color: #ff3b3f;
+      color: #9e1c29;
       font-weight: bold;
       padding: 12px;
       width: 100%;
@@ -62,17 +64,18 @@
       font-size: 16px;
       cursor: pointer;
       margin-top: 16px;
+      transition: 0.2s ease;
     }
     .btn:hover {
-      opacity: 0.9;
+      background-color: #ffe4e6;
     }
     .info {
       margin-top: 8px;
       font-size: 14px;
-      color: #ffeaea;
+      color: #ffcfd1;
     }
     .reverse-btn {
-      background: #ffffff30;
+      background: #3d1a20;
       margin: 8px auto;
       width: 40px;
       height: 40px;
@@ -91,16 +94,17 @@
       border: none;
       padding: 4px 10px;
       border-radius: 8px;
-      color: #ff3b3f;
+      color: #9e1c29;
       cursor: pointer;
       font-size: 12px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
 <div class="container">
-  <img src="logo.jpg" alt="Arena Logo" class="logo" />
-  <h2>⚡ Arena DEX Pro</h2>
+  <img src="logo.jpg" alt="RubySwap Logo" class="logo" />
+  <h2>💎 RubySwap</h2>
 
   <div class="token-box">
     <label>From Token:</label>
@@ -127,7 +131,7 @@
   <button class="btn" onclick="connect()">🔌 Connect Wallet</button>
   <div class="info" id="walletStatus">Not connected</div>
 
-  <button class="btn" onclick="swap()" id="swapBtn" disabled>🔥 Swap</button>
+  <button class="btn" onclick="swap()" id="swapBtn" disabled>💎 Swap on RubySwap</button>
 </div>
 
 <script>
