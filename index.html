@@ -64,10 +64,46 @@
     .connect-btn:hover {
       background: #801722;
     }
+    .token-box {
+      background: #141414;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .token-box label {
+      font-size: 13px;
+      color: var(--subtle);
+    }
+    select, input {
+      width: 100%;
+      padding: 10px;
+      background: #1f1f1f;
+      border: none;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+    .btn {
+      background: var(--ruby);
+      color: white;
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: bold;
+      border: none;
+      border-radius: 14px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .btn:hover {
+      background: #801722;
+    }
     .info-message {
       text-align: center;
       color: var(--subtle);
-      margin-top: 20px;
+      margin-top: 10px;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -81,8 +117,33 @@
       <button class="connect-btn" onclick="connect()">Connect Wallet</button>
     </div>
 
-    <!-- Placeholder for swap tab UI -->
-    <div class="info-message">[Swap UI content will be added here]</div>
+    <div class="token-box">
+      <label for="tokenIn">From</label>
+      <select id="tokenIn">
+        <option value="AVAX">AVAX</option>
+        <option value="USDC">USDC</option>
+        <option value="ARENA">ARENA</option>
+      </select>
+      <input id="amountIn" type="number" placeholder="Enter amount" />
+    </div>
+
+    <div class="token-box">
+      <label for="tokenOut">To</label>
+      <select id="tokenOut">
+        <option value="USDC">USDC</option>
+        <option value="AVAX">AVAX</option>
+        <option value="ARENA">ARENA</option>
+      </select>
+      <div class="info-message">Estimated: -</div>
+    </div>
+
+    <div class="token-box">
+      <label for="slippage">Slippage Tolerance (%)</label>
+      <input id="slippage" type="number" value="1" />
+    </div>
+
+    <button class="btn" onclick="swap()">Swap</button>
+    <div class="info-message" id="status">Not connected</div>
   </div>
 
   <script>
@@ -94,11 +155,16 @@
         const signer = await provider.getSigner();
         const address = await signer.getAddress();
         document.querySelector(".connect-btn").innerText = "✔ " + address.slice(0, 6) + "..." + address.slice(-4);
+        document.getElementById("status").innerText = "Connected: " + address;
       } catch (err) {
         alert("Connection failed: " + err.message);
       }
     }
+    function swap() {
+      alert("Swap logic not yet implemented.");
+    }
   </script>
 </body>
 </html>
+
 
