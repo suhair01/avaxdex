@@ -20,10 +20,40 @@
       background: var(--bg);
       color: var(--text);
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       min-height: 100vh;
-      padding: 16px;
+    }
+    .header-bar {
+      width: 100%;
+      background: var(--card);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-brand img {
+      height: 28px;
+    }
+    .header-brand span {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--ruby);
+    }
+    .connect-btn {
+      padding: 6px 12px;
+      background: var(--ruby);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
     }
     .swap-container {
       background: var(--card);
@@ -32,19 +62,7 @@
       width: 100%;
       max-width: 360px;
       box-shadow: 0 8px 30px rgba(0,0,0,0.3);
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 16px;
-    }
-    .header img {
-      height: 32px;
-      margin-bottom: 6px;
-    }
-    .header h2 {
-      margin: 0;
-      font-size: 18px;
-      color: var(--ruby);
+      margin-top: 20px;
     }
     .token-box {
       background: #141414;
@@ -153,12 +171,15 @@
   </style>
 </head>
 <body>
-  <div class="swap-container">
-    <div class="header">
+  <div class="header-bar">
+    <div class="header-brand">
       <img src="logo.jpg" alt="RubySwap">
-      <h2>RubySwap</h2>
+      <span>RubySwap</span>
     </div>
+    <button class="connect-btn" onclick="connect()">Connect Wallet</button>
+  </div>
 
+  <div class="swap-container">
     <div class="token-box">
       <div class="token-row">
         <div class="token-select">
@@ -191,9 +212,8 @@
     <div class="slippage-box">Slippage: <input id="slippage" value="1" style="width: 50px; text-align:center;">%</div>
     <div class="info" id="estimate">Estimated: -</div>
 
-    <button class="btn" onclick="connect()">Connect Wallet</button>
-    <div class="info" id="walletStatus">Not connected</div>
     <button class="btn" onclick="swap()" id="swapBtn" disabled>Swap</button>
+    <div class="info" id="walletStatus">Not connected</div>
   </div>
 
 <script>
@@ -219,18 +239,17 @@ const tokens = [
   { symbol: "ARENA", address: "0xb8d7710f7d8349a506b75dd184f05777c82dad0c", logo: "https://via.placeholder.com/20x20.png?text=A" },
   { symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", logo: "https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png" },
   { symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB", logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png" },
-  { symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd", logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanche/assets/0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd/logo.png" },
-  { symbol: "WAVAX", address: WAVAX, logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanche/assets/0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7/logo.png" }
+  { symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd", logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanche/assets/0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd/logo.png" }
 ];
 
 function populateTokens() {
   const inSel = document.getElementById("tokenInSelect");
   const outSel = document.getElementById("tokenOutSelect");
   inSel.innerHTML = ""; outSel.innerHTML = "";
-  tokens.forEach((t) => {
+  tokens.forEach(t => {
     const opt = document.createElement("option");
     opt.value = JSON.stringify(t);
-    opt.textContent = t.symbol;
+    opt.innerText = t.symbol;
     inSel.appendChild(opt.cloneNode(true));
     outSel.appendChild(opt.cloneNode(true));
   });
@@ -262,9 +281,9 @@ async function connect() {
   signer = await provider.getSigner();
   router = new ethers.Contract(routerAddress, ABI, signer);
   userAddress = await signer.getAddress();
-  document.getElementById("walletStatus").innerText = "Connected: " + userAddress.slice(0, 6) + "...";
+  document.getElementById("walletStatus").innerText = "Connected: " + userAddress.slice(0,6) + "...";
   document.getElementById("swapBtn").disabled = false;
-  updateBalances();
+  updateBalances(); updateEstimate();
 }
 
 async function updateBalances() {
@@ -284,14 +303,14 @@ async function updateBalances() {
 
 async function updateEstimate() {
   if (!provider) return;
-  const amount = document.getElementById("tokenInAmount").value;
-  if (!amount || isNaN(amount)) return;
+  const amt = document.getElementById("tokenInAmount").value;
+  if (!amt || isNaN(amt)) return;
   const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
   const tokenOut = JSON.parse(document.getElementById("tokenOutSelect").value);
   const path = [tokenIn.address === "AVAX" ? WAVAX : tokenIn.address, tokenOut.address === "AVAX" ? WAVAX : tokenOut.address];
   try {
     const result = await new ethers.Contract(routerAddress, ABI, provider)
-      .getAmountsOut(ethers.parseUnits(amount, 18), path);
+      .getAmountsOut(ethers.parseUnits(amt, 18), path);
     const est = ethers.formatUnits(result[1], 18);
     document.getElementById("tokenOutAmount").value = est;
     document.getElementById("estimate").innerText = `Estimated: ≈ ${est} ${tokenOut.symbol}`;
@@ -301,9 +320,9 @@ async function updateEstimate() {
 }
 
 async function swap() {
-  const amount = document.getElementById("tokenInAmount").value;
+  const amt = document.getElementById("tokenInAmount").value;
   const slippage = parseFloat(document.getElementById("slippage").value);
-  const amountIn = ethers.parseUnits(amount, 18);
+  const amountIn = ethers.parseUnits(amt, 18);
   const tokenIn = JSON.parse(document.getElementById("tokenInSelect").value);
   const tokenOut = JSON.parse(document.getElementById("tokenOutSelect").value);
   const to = userAddress;
@@ -327,17 +346,17 @@ async function swap() {
   }
 }
 
-async function setPercentage(percent) {
+async function setPercentage(p) {
   if (!provider || !userAddress) return;
   const token = JSON.parse(document.getElementById("tokenInSelect").value);
   if (token.address === "AVAX") {
     const bal = await provider.getBalance(userAddress);
-    document.getElementById("tokenInAmount").value = ethers.formatEther(bal * BigInt(percent) / 100n);
+    document.getElementById("tokenInAmount").value = ethers.formatEther(bal * BigInt(p) / 100n);
   } else {
     const contract = new ethers.Contract(token.address, ERC20_ABI, provider);
     const bal = await contract.balanceOf(userAddress);
     const dec = await contract.decimals();
-    const amt = bal * BigInt(percent) / 100n;
+    const amt = bal * BigInt(p) / 100n;
     document.getElementById("tokenInAmount").value = ethers.formatUnits(amt, dec);
   }
   updateEstimate();
@@ -347,7 +366,6 @@ window.addEventListener("load", () => {
   populateTokens();
   updateBalances();
 });
-
 document.getElementById("tokenInSelect").addEventListener("change", () => { updateLogos(); updateBalances(); updateEstimate(); });
 document.getElementById("tokenOutSelect").addEventListener("change", () => { updateLogos(); updateBalances(); updateEstimate(); });
 </script>
