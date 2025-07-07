@@ -354,14 +354,18 @@
 </div>
 
     <div class="token-box">
-      <div class="token-row">
-        <div class="token-select">
-  <img id="inLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
-  <select id="tokenInSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
+     <div class="token-row">
+  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+    <div class="token-select" style="flex-grow: 1;">
+      <img id="inLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
+      <select id="tokenInSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
+    </div>
+    <div class="balance" id="balanceIn" style="margin-left: 12px; font-size: 13px; color: var(--subtle); white-space: nowrap;">
+      Balance: 0.0000
+    </div>
+  </div>
 </div>
 
-        <div class="balance" id="balanceIn">Balance: 0</div>
-      </div>
       <input class="amount-input" id="tokenInAmount" placeholder="0.0" oninput="updateEstimate()">
       <div class="percentage-buttons">
         <button onclick="setPercentage(25)">25%</button>
@@ -372,12 +376,17 @@
     <button class="reverse-btn" onclick="reverseTokens()">⇅</button>
     <div class="token-box">
       <div class="token-row">
-        <div class="token-select">
-  <img id="outLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
-  <select id="tokenOutSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
+  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+    <div class="token-select" style="flex-grow: 1;">
+      <img id="outLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
+      <select id="tokenOutSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
+    </div>
+    <div class="balance" id="balanceOut" style="margin-left: 12px; font-size: 13px; color: var(--subtle); white-space: nowrap;">
+      Balance: 0.0000
+    </div>
+  </div>
 </div>
 
-        <div class="balance" id="balanceOut">Balance: 0</div>
       </div>
       <input class="amount-input" id="tokenOutAmount" placeholder="0.0" readonly>
     </div>
