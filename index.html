@@ -519,7 +519,7 @@ showToast("Address copied!", "info");
         const contract = new ethers.Contract(t.address, ERC20_ABI, provider);
         const bal = await contract.balanceOf(userAddress);
         const dec = tokenDecimals[t.address] || 18;
-        return ethers.formatUnits(bal, dec);
+        return parseFloat(ethers.formatUnits(bal, dec)).toFixed(4);
       };
 
       document.getElementById("balanceIn").innerText = "Balance: " + await getBal(tokenIn);
@@ -543,7 +543,7 @@ showToast("Address copied!", "info");
 
   try {
     const result = await router.getAmountsOut(ethers.parseUnits(amt, decIn), path);
-    const est = ethers.formatUnits(result[1], decOut);
+    const est = parseFloat(ethers.formatUnits(result[1], decOut)).toFixed(4);
     document.getElementById("tokenOutAmount").value = est;
   } catch {
     document.getElementById("tokenOutAmount").value = "";
