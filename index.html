@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <title>RubySwap</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <link rel="preload" href="https://via.placeholder.com/20x20?text=?" as="image">
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.6.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
@@ -153,21 +154,32 @@
       align-items: center;
       margin-bottom: 6px;
     }
-    .token-select select {
-      width: 100%;
-      padding: 8px 8px 8px 34px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      background: #f7f7f7;
-    }
-    .token-select img {
-      position: absolute;
-      left: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 18px;
-    }
+   .token-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.token-select img {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+.token-select select {
+  width: 100%;
+  padding: 8px 8px 8px 34px; /* space for icon */
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  background: #f7f7f7;
+  appearance: none;
+}
+
     .amount-input {
       width: 100%;
       padding: 10px;
@@ -343,7 +355,11 @@
 
     <div class="token-box">
       <div class="token-row">
-        <div class="token-select"><img id="inLogo" src=""><select id="tokenInSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select></div>
+        <div class="token-select">
+  <img id="inLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
+  <select id="tokenInSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
+</div>
+
         <div class="balance" id="balanceIn">Balance: 0</div>
       </div>
       <input class="amount-input" id="tokenInAmount" placeholder="0.0" oninput="updateEstimate()">
@@ -356,7 +372,11 @@
     <button class="reverse-btn" onclick="reverseTokens()">⇅</button>
     <div class="token-box">
       <div class="token-row">
-        <div class="token-select"><img id="outLogo" src=""><select id="tokenOutSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select></div>
+        <div class="token-select">
+  <img id="outLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
+  <select id="tokenOutSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
+</div>
+
         <div class="balance" id="balanceOut">Balance: 0</div>
       </div>
       <input class="amount-input" id="tokenOutAmount" placeholder="0.0" readonly>
