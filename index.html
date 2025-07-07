@@ -354,18 +354,14 @@
 </div>
 
     <div class="token-box">
-     <div class="token-row">
-  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-    <div class="token-select" style="flex-grow: 1;">
-      <img id="inLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
-      <select id="tokenInSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
-    </div>
-    <div class="balance" id="balanceIn" style="margin-left: 12px; font-size: 13px; color: var(--subtle); white-space: nowrap;">
-      Balance: 0.0000
-    </div>
-  </div>
+      <div class="token-row">
+        <div class="token-select">
+  <img id="inLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
+  <select id="tokenInSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
 </div>
 
+        <div class="balance" id="balanceIn">Balance: 0</div>
+      </div>
       <input class="amount-input" id="tokenInAmount" placeholder="0.0" oninput="updateEstimate()">
       <div class="percentage-buttons">
         <button onclick="setPercentage(25)">25%</button>
@@ -376,17 +372,12 @@
     <button class="reverse-btn" onclick="reverseTokens()">⇅</button>
     <div class="token-box">
       <div class="token-row">
-  <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-    <div class="token-select" style="flex-grow: 1;">
-      <img id="outLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
-      <select id="tokenOutSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
-    </div>
-    <div class="balance" id="balanceOut" style="margin-left: 12px; font-size: 13px; color: var(--subtle); white-space: nowrap;">
-      Balance: 0.0000
-    </div>
-  </div>
+        <div class="token-select">
+  <img id="outLogo" src="" onerror="this.src='https://via.placeholder.com/20x20?text=?'" />
+  <select id="tokenOutSelect" onchange="updateLogos(); updateBalances(); updateEstimate()"></select>
 </div>
 
+        <div class="balance" id="balanceOut">Balance: 0</div>
       </div>
       <input class="amount-input" id="tokenOutAmount" placeholder="0.0" readonly>
     </div>
@@ -444,9 +435,9 @@
     const tokenDecimals = {};
 
     const tokens = [
-      { symbol: "AVAX", address: "AVAX", logo: "avalanche.jpg" },
+      { symbol: "AVAX", address: "AVAX", logo: "https://cryptologos.cc/logos/avalanche-avax-logo.png" },
       { symbol: "ARENA", address: "0xb8d7710f7d8349a506b75dd184f05777c82dad0c", logo: "https://via.placeholder.com/20x20.png?text=A" },
-      { symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", logo: "usdc.jpg" },
+      { symbol: "USDC", address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", logo: "https://assets.coingecko.com/coins/images/6319/thumb/USD_Coin_icon.png" },
       { symbol: "WETH", address: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB", logo: "https://cryptologos.cc/logos/ethereum-eth-logo.png" },
       { symbol: "JOE", address: "0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd", logo: "https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/avalanche/assets/0x6e84a6216eA6dACC71eE8E6b0a5B7322EEbC0fDd/logo.png" }
     ];
@@ -528,7 +519,7 @@ showToast("Address copied!", "info");
         const contract = new ethers.Contract(t.address, ERC20_ABI, provider);
         const bal = await contract.balanceOf(userAddress);
         const dec = tokenDecimals[t.address] || 18;
-        return parseFloat(ethers.formatUnits(bal, dec)).toFixed(4);
+        return ethers.formatUnits(bal, dec);
       };
 
       document.getElementById("balanceIn").innerText = "Balance: " + await getBal(tokenIn);
@@ -552,7 +543,7 @@ showToast("Address copied!", "info");
 
   try {
     const result = await router.getAmountsOut(ethers.parseUnits(amt, decIn), path);
-    const est = parseFloat(ethers.formatUnits(result[1], decOut)).toFixed(4);
+    const est = ethers.formatUnits(result[1], decOut);
     document.getElementById("tokenOutAmount").value = est;
   } catch {
     document.getElementById("tokenOutAmount").value = "";
